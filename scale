@@ -1,7 +1,17 @@
 #!/bin/bash
-app=2
-last_ip="172.17.0.3"
-threshold=50
+
+# trap ctrl-c to restore the 'haproxy.cfg' settings.
+trap ctrl_c INT
+
+function ctrl_c() {
+		sudo cp /etc/haproxy/Atstart_haproxy.cfg /etc/haproxy/haproxy.cfg
+		echo "Haproxy Settings Restored !!"
+}
+
+#Scaling thresholds
+high_threshold=50
+low_threshold=20
+inum=2
 while true; do
 	cpuUsage=()
 	cpuUsage=( $(sudo docker stats --no-stream | awk '{print $2}') )
@@ -12,14 +22,11 @@ while true; do
 			cmp=$(echo "$cur_cpu>$threshold" | bc)
 			if [ $cmp -eq 1 ];
 			then
-				app=$(echo "$app+1"|bc)
-				sudo docker run --name running_apache$app --rm -it my-apache2
-				baseaddr="$(echo $last_ip | cut -d. -f1-3)"
-				lsv="$(echo $ip | cut -d. -f4)"
-				lsv=$(echo "$lsv+1"|bc)
-				last_ip=$baseaddr.$lsv
-				new_server="server $app-www $last_ip:80 check"
-				sudo echo $new_server >> /etc/haproxy/haproxy.cfg
+				inum=$(echo "$inum+1"|bc)
+				CID=$(sudo docker run -d --name running_apache$inum --rm -it my-apache2)
+				new_ip=$(sudo docker inspect $CID)
+				add_id="             server $inum-www $new_ip:80 check"
+				sudo echo $add_ip >> /etc/haproxy/haproxy.cfg
 				sudo systemctl restart haproxy.service
 			fi
 	sleep 2
