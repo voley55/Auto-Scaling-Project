@@ -4,6 +4,7 @@ trap ctrl_c INT
 
 function ctrl_c() {
 		sudo cp /etc/haproxy/Atstart_haproxy.cfg /etc/haproxy/haproxy.cfg
+		sudo systemctl reload haproxy
 		for i in "${containerInstances[@]}"
 		do
 			check=$(sudo docker stop $i)
@@ -19,26 +20,33 @@ containerInstances=()
 inum=2
 while true; do
 	cpuUsage=()
+	sum=0
 	cpuUsage=( $(sudo docker stats --no-stream | awk '{print $2}') )
 	echo ${cpuUsage[@]:1}
+
+	#Change Up Scale logic
 	for i in "${cpuUsage[@]:1}"
 		do
 			cur_cpu=${i::-1}
-			cmp=$(echo "$cur_cpu>$high_threshold" | bc)
-			echo "Decision Value : $cmp"
-			if [ $cmp -eq 1 ];
-			then
-				echo "Instantiating new container...."
-				inum=$(echo "$inum+1"|bc)
-				CID=$(sudo docker run -d -it my-apache2)
-				containerInstances+=($CID)
-				new_ip=()
-				new_ip=($(sudo docker inspect $CID | grep IPAddress | cut -d '"' -f 4))
-				add_id="             server $inum-www ${new_ip[1]}:80 check"
-				sudo echo $add_id >> /etc/haproxy/haproxy.cfg
-				result=$(sudo systemctl reload haproxy)
-				break
-			fi
-		done
+			sum=$(echo "$sum+$cur_cpu" | bc)
+	done
+	size=$(echo "${#cpuUsage[@]}-1" | bc)
+	avg=$(echo "$sum/$size" | bc)
+	Ucmp=$(echo "$avg>$high_threshold" | bc)
+	Dcmp=$(echo "$avg<$low_threshold" | bc)
+	echo "Decision Value for Up-scale: $Ucmp"
+	echo "Decision Value for Down-scale: $Dcmp"
+	if [ $Ucmp -eq 1 ];
+	then
+		echo "Instantiating new container...."
+		inum=$(echo "$inum+1"|bc)
+		CID=$(sudo docker run -d -it my-apache2)
+		containerInstances+=($CID)
+		new_ip=()
+		new_ip=($(sudo docker inspect $CID | grep IPAddress | cut -d '"' -f 4))
+		add_id="             server $inum-www ${new_ip[1]}:80 check"
+		sudo echo $add_id >> /etc/haproxy/haproxy.cfg
+		result=$(sudo systemctl reload haproxy)
+	fi
 		sleep 1
 done
