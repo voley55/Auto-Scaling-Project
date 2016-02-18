@@ -17,6 +17,7 @@ function ctrl_c() {
 high_threshold=40
 low_threshold=5
 containerInstances=()
+containerIPs=()
 inum=2
 while true; do
 	cpuUsage=()
@@ -35,8 +36,13 @@ while true; do
 	Ucmp=$(echo "$avg>$high_threshold" | bc)
 	Dcmp=$(echo "$avg<$low_threshold" | bc)
 	echo "Decision Value for Up-scale: $Ucmp"
-	echo "Decision Value for Down-scale: $Dcmp"
-	if [ $Ucmp -eq 1 ];
+	if [ ${#containerInstances[@]} -gt 0 ]
+		then
+			echo "Decision Value for Down-scale: 1"
+	else
+			echo "Decision Value for Down-scale: 0"
+	fi
+	if [ $Ucmp -eq 1 ]
 	then
 		echo "Instantiating new container...."
 		inum=$(echo "$inum+1"|bc)
@@ -44,9 +50,19 @@ while true; do
 		containerInstances+=($CID)
 		new_ip=()
 		new_ip=($(sudo docker inspect $CID | grep IPAddress | cut -d '"' -f 4))
+		containerIPs+=($new_ip[1])
 		add_id="             server $inum-www ${new_ip[1]}:80 check"
 		sudo echo $add_id >> /etc/haproxy/haproxy.cfg
 		result=$(sudo systemctl reload haproxy)
+	elif [ $Dcmp -eq 1 ] && [ ${#containerInstances[@]} -gt 0 ]
+		then
+			echo "Stopping a instance...."
+			inum=$(echo "$inum-1"|bc)
+			sudo sed -i "/${containerIPs[-1]}:80/d" /etc/haproxy/haproxy.cfg
+			sudo systemctl reload haproxy
+			hide=$(sudo docker stop ${containerInstances[-1]})
+			unset containerIPs[${#containerIPs[@]}-1]
+			unset containerInstances[${#containerInstances[@]}-1]
 	fi
 		sleep 1
 done
