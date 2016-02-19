@@ -16,6 +16,8 @@ function ctrl_c() {
 #Scaling thresholds
 high_threshold=40
 low_threshold=5
+dscale=5
+counter=0
 containerInstances=()
 containerIPs=()
 inum=2
@@ -25,7 +27,7 @@ while true; do
 	cpuUsage=( $(sudo docker stats --no-stream | awk '{print $2}') )
 	echo ${cpuUsage[@]:1}
 
-	#Change Up Scale logic
+#Calculating Average CPU Utilisation
 	for i in "${cpuUsage[@]:1}"
 		do
 			cur_cpu=${i::-1}
@@ -33,10 +35,12 @@ while true; do
 	done
 	size=$(echo "${#cpuUsage[@]}-1" | bc)
 	avg=$(echo "$sum/$size" | bc)
+
+#Up-Scale and Down-Scale Logic
 	Ucmp=$(echo "$avg>$high_threshold" | bc)
 	Dcmp=$(echo "$avg<$low_threshold" | bc)
 	echo "Decision Value for Up-scale: $Ucmp"
-	if [ ${#containerInstances[@]} -gt 0 ]
+	if [ ${#containerInstances[@]} -gt 0 ] && [ $Dcmp -eq 1 ]
 		then
 			echo "Decision Value for Down-scale: 1"
 	else
@@ -54,15 +58,25 @@ while true; do
 		add_id="             server $inum-www ${new_ip[1]}:80 check"
 		sudo echo $add_id >> /etc/haproxy/haproxy.cfg
 		result=$(sudo systemctl reload haproxy)
+		sleep 2
 	elif [ $Dcmp -eq 1 ] && [ ${#containerInstances[@]} -gt 0 ]
 		then
-			echo "Stopping a instance...."
-			inum=$(echo "$inum-1"|bc)
-			sudo sed -i "/${containerIPs[-1]}:80/d" /etc/haproxy/haproxy.cfg
-			sudo systemctl reload haproxy
-			hide=$(sudo docker stop ${containerInstances[-1]})
-			unset containerIPs[${#containerIPs[@]}-1]
-			unset containerInstances[${#containerInstances[@]}-1]
+			if [ $counter -gt $dscale ]
+				then
+					counter=0
+					echo "Stopping a instance...."
+					inum=$(echo "$inum-1"|bc)
+					sudo sed -i "/${containerIPs[-1]}:80/d" /etc/haproxy/haproxy.cfg
+					sudo systemctl reload haproxy
+					hide=$(sudo docker stop ${containerInstances[-1]})
+					unset containerIPs[${#containerIPs[@]}-1]
+					unset containerInstances[${#containerInstances[@]}-1]
+					sleep 2
+			else
+				counter=$(echo "$counter+1"|bc)
+				sleep 2
+			fi
+	else
+		sleep 2
 	fi
-		sleep 1
 done
