@@ -2,10 +2,10 @@
 
 ##About
 `scale` is a bash script that spawns and de-spawns docker containers depending on the current average cpu utilization of each of all the docker containers.
-###Features:
+####Features:
   - Spawns new docker conatiners when average cpu utilisation goes above `high_threshold`
   - De-spawn docker containers when average cpu utilisation goes below `low_threshold`. But at all times, the initial setup (shown below) remains intact.
-  - In order to have high availabiltiy, it also supports failover feature for haproxy.
+  - In order to have high availabiltiy, it also supports failover feature for HAproxy.
 
 ##Intial set-up
 ![alt tag](https://github.com/voley55/Auto-Scaling-Project/blob/master/AutoScale.png)
@@ -13,7 +13,7 @@
 ##Installation and Usage
 
 ####Requirements:
-- Haproxy 1.6  (http://www.haproxy.org/)
+- HAproxy 1.6  (http://www.haproxy.org/)
 - Docker (https://docs.docker.com/engine/installation/)
 - Keepalived (http://www.keepalived.org/software/)
 
