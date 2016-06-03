@@ -1,26 +1,19 @@
-****************************************Auto Scaling Project***************************************
+#Auto Scaling Project
 
-Intial set-up:
-Haproxy---------->Web-Server1---------Web-Server2
-Haproxy runs on the host machine and both the web servers are running instances of docker containers.
+##About
+`scale` is a bash script that spawns and de-spawns docker containers depending on the current average cpu utilization of each of all the docker containers.
+###Features:
+  - Spawns new docker conatiners when average cpu utilisation goes above `hight_hreshold`
+  - De-spawn docker containers when average cpu utilisation goes below `low_threshold`. But at all times, the initial setup (shown below) remains intact.
+  - In order to have high availabiltiy, it also supports failover feature for haproxy.
 
-AIM:
-Depending on the current load (requests), our infrastructure should be able to scaleup and down i.e.
-spawning and de-spawning of docker containers.
+##Intial set-up
+![alt tag](https://github.com/voley55/Auto-Scaling-Project/blob/master/AutoScale.png)
 
-Solution:
-For scaling the infrastructure, I have a written a script 'scale', which calculates average CPU util-
-isation after every two seconds.And if Average CPU utilisation is above high_threshold (currently set
-as 40%),it spawns a new docker instance and add it's IP to the haproxy.cfg and reloads it. This adds
-the new web-server in to the running infrastructure.Similarly,if Average CPU utilisation goes below 
-low_threshold (currently set as 5%) continuously for 10 seconds, it de-spawns a running web server.
+##Installation and Usage
 
-At anytime, we do not stop our initial set up. This can be turned off manually only.When we stop the
-script (scale) by pressing ctrl+c, it de-spawns all the added web servers (other than initial set up) 
-and restores the initial haproxy.cfg settings.
-
-Steps for initial set up and get things running:
-1. Install haproxy(load balancer) on the host machine. Change the haproxy.cfg depending on your set
+###Requirements
+-Install haproxy(load balancer) on the host machine. Change the haproxy.cfg depending on your set
 up.Sample haproxy.cfg is provided in the project repository.
 2. Install docker on the host machine. From inside the Apache folder of repository,run the following 
 command to build a web server image.
