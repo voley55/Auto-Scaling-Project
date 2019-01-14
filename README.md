@@ -1,23 +1,23 @@
-#Auto Scaling Project
+# Auto Scaling Project
 
-##About
-`scale` is a bash script that spawns and de-spawns docker containers depending on the current average cpu utilization of each of all the docker containers.
-####Features:
-  - Spawns new docker conatiners when average cpu utilisation goes above `high_threshold`
-  - De-spawn docker containers when average cpu utilisation goes below `low_threshold`. But at all times, the initial setup (shown below) remains intact.
+## About
+`scale` is a bash script that spawns and de-spawns docker containers depending on the current average cpu utilization of each of the docker containers.
+#### Features:
+  - Spawns a new docker conatiner when average cpu utilisation goes above `high_threshold`
+  - De-spawns a docker container when average cpu utilisation goes below `low_threshold`. But at all times, the initial setup (shown below) remains intact.
   - In order to have high availabiltiy, it also supports failover feature for HAproxy.
 
-##Intial set-up
+## Intial set-up
 ![alt tag](https://github.com/voley55/Auto-Scaling-Project/blob/master/AutoScale.png)
 
-##Installation and Usage
+## Installation and Usage
 
-####Requirements:
+#### Requirements:
 - HAproxy 1.6  (http://www.haproxy.org/)
 - Docker (https://docs.docker.com/engine/installation/)
 - Keepalived (http://www.keepalived.org/software/)
 
-####Steps:
+#### Steps:
 After installing all of the above requirements do the following:
 -  Edit the `haproxy.cfg` and define the appropriate frontend and backends. A sample `haproxy.cfg` is provided in the repository.
 -  From inside the `Apache` folder of the repository,run the following command to build a web server image.
@@ -36,9 +36,6 @@ sudo docker run -it --ip==static_ip2 my-apache2
 ```
 - Perform AB-testing on the haproxy, to check how your infrastructure is scaling.
 
-##Limitations
+## Limitations
 - Statically assign IP addresses to the initial two docker containers as mentioned in the haproxy.conf
-- In case of distributed architecture using keepalived, this script doesn't utilize the resources of the systems except on which it is running.
-
-##License
-GNU GPLv3
+- In case of distributed architecture using keepalived, this script doesn't utilize the resources of the systems except on which it is running.  
